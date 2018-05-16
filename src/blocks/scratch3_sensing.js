@@ -1,4 +1,5 @@
 const Cast = require('../util/cast');
+const Timer = require('../util/timer');
 
 class Scratch3SensingBlocks {
     constructor (runtime) {
@@ -13,6 +14,24 @@ class Scratch3SensingBlocks {
          * @type {string}
          */
         this._answer = '';
+
+        /**
+         * The timer utility.
+         * @type {Timer}
+         */
+        this._timer = new Timer();
+
+        /**
+         * The stored microphone loudness measurement.
+         * @type {number}
+         */
+        this._cachedLoudness = -1;
+
+        /**
+         * The time of the most recent microphone loudness measurement.
+         * @type {number}
+         */
+        this._cachedLoudnessTimestamp = 0;
 
         /**
          * The list of queued questions and respective `resolve` callbacks.
@@ -46,17 +65,30 @@ class Scratch3SensingBlocks {
             sensing_current: this.current,
             sensing_dayssince2000: this.daysSince2000,
             sensing_loudness: this.getLoudness,
+            sensing_loud: this.isLoud,
             sensing_askandwait: this.askAndWait,
-            sensing_answer: this.getAnswer
+            sensing_answer: this.getAnswer,
+            sensing_userid: () => {} // legacy no-op block
         };
     }
 
     getMonitored () {
         return {
-            sensing_answer: {},
-            sensing_loudness: {},
-            sensing_timer: {},
-            sensing_current: {}
+            sensing_answer: {
+                getId: () => 'answer'
+            },
+            sensing_loudness: {
+                getId: () => 'loudness'
+            },
+            sensing_timer: {
+                getId: () => 'timer'
+            },
+            sensing_current: {
+                // This is different from the default toolbox xml id in order to support
+                // importing multiple monitors from the same opcode from sb2 files,
+                // something that is not currently supported in scratch 3.
+                getId: (_, param) => `current_${param}`
+            }
         };
     }
 
@@ -217,7 +249,21 @@ class Scratch3SensingBlocks {
 
     getLoudness () {
         if (typeof this.runtime.audioEngine === 'undefined') return -1;
-        return this.runtime.audioEngine.getLoudness();
+        if (this.runtime.currentStepTime === null) return -1;
+
+        // Only measure loudness once per step
+        const timeSinceLoudness = this._timer.time() - this._cachedLoudnessTimestamp;
+        if (timeSinceLoudness < this.runtime.currentStepTime) {
+            return this._cachedLoudness;
+        }
+
+        this._cachedLoudnessTimestamp = this._timer.time();
+        this._cachedLoudness = this.runtime.audioEngine.getLoudness();
+        return this._cachedLoudness;
+    }
+
+    isLoud () {
+        return this.getLoudness() > 10;
     }
 
     getAttributeOf (args) {
@@ -228,6 +274,11 @@ class Scratch3SensingBlocks {
         } else {
             attrTarget = this.runtime.getSpriteTargetByName(args.OBJECT);
         }
+
+        // attrTarget can be undefined if the target does not exist
+        // (e.g. single sprite uploaded from larger project referencing
+        // another sprite that wasn't uploaded)
+        if (!attrTarget) return 0;
 
         // Generic attributes
         if (attrTarget.isStage) {
