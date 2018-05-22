@@ -14,9 +14,7 @@ npm-*
 /.idea
 
 # Build
-/dist
 /playground
 /benchmark
 
 # Localization
-/translations

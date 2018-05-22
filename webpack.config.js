@@ -72,82 +72,82 @@ module.exports = [
         }
     }),
     // Playground
-    defaultsDeep({}, base, {
-        target: 'web',
-        entry: {
-            'scratch-vm': './src/index.js',
-            'vendor': [
-                // FPS counter
-                'stats.js/build/stats.min.js',
-                // Syntax highlighter
-                'highlightjs/highlight.pack.min.js',
-                // Scratch Blocks
-                'scratch-blocks/dist/vertical.js',
-                // Audio
-                'scratch-audio',
-                // Storage
-                'scratch-storage',
-                // Renderer
-                'scratch-render'
-            ],
-            'video-sensing-extension-debug': './src/extensions/scratch3_video_sensing/debug'
-        },
-        output: {
-            path: path.resolve(__dirname, 'playground'),
-            filename: '[name].js'
-        },
-        module: {
-            rules: base.module.rules.concat([
-                {
-                    test: require.resolve('./src/index.js'),
-                    loader: 'expose-loader?VirtualMachine'
-                },
-                {
-                    test: require.resolve('./src/extensions/scratch3_video_sensing/debug.js'),
-                    loader: 'expose-loader?Scratch3VideoSensingDebug'
-                },
-                {
-                    test: require.resolve('stats.js/build/stats.min.js'),
-                    loader: 'script-loader'
-                },
-                {
-                    test: require.resolve('highlightjs/highlight.pack.min.js'),
-                    loader: 'script-loader'
-                },
-                {
-                    test: require.resolve('scratch-blocks/dist/vertical.js'),
-                    loader: 'expose-loader?Blockly'
-                },
-                {
-                    test: require.resolve('scratch-audio'),
-                    loader: 'expose-loader?AudioEngine'
-                },
-                {
-                    test: require.resolve('scratch-storage'),
-                    loader: 'expose-loader?ScratchStorage'
-                },
-                {
-                    test: require.resolve('scratch-render'),
-                    loader: 'expose-loader?ScratchRender'
-                }
-            ])
-        },
-        performance: {
-            hints: false
-        },
-        plugins: base.plugins.concat([
-            new CopyWebpackPlugin([{
-                from: 'node_modules/scratch-blocks/media',
-                to: 'media'
-            }, {
-                from: 'node_modules/highlightjs/styles/zenburn.css'
-            }, {
-                from: 'node_modules/scratch-storage/dist/web'
-            }, {
-                from: 'node_modules/scratch-render/dist/web'
-            }, {
-                from: 'src/playground'
-            }])
-        ])
-    })
+    // defaultsDeep({}, base, {
+    //     target: 'web',
+    //     entry: {
+    //         'scratch-vm': './src/index.js',
+    //         'vendor': [
+    //             // FPS counter
+    //             'stats.js/build/stats.min.js',
+    //             // Syntax highlighter
+    //             'highlightjs/highlight.pack.min.js',
+    //             // Scratch Blocks
+    //             'scratch-blocks/dist/vertical.js',
+    //             // Audio
+    //             'scratch-audio',
+    //             // Storage
+    //             'scratch-storage',
+    //             // Renderer
+    //             'scratch-render'
+    //         ],
+    //         'video-sensing-extension-debug': './src/extensions/scratch3_video_sensing/debug'
+    //     },
+    //     output: {
+    //         path: path.resolve(__dirname, 'playground'),
+    //         filename: '[name].js'
+    //     },
+    //     module: {
+    //         rules: base.module.rules.concat([
+    //             {
+    //                 test: require.resolve('./src/index.js'),
+    //                 loader: 'expose-loader?VirtualMachine'
+    //             },
+    //             {
+    //                 test: require.resolve('./src/extensions/scratch3_video_sensing/debug.js'),
+    //                 loader: 'expose-loader?Scratch3VideoSensingDebug'
+    //             },
+    //             {
+    //                 test: require.resolve('stats.js/build/stats.min.js'),
+    //                 loader: 'script-loader'
+    //             },
+    //             {
+    //                 test: require.resolve('highlightjs/highlight.pack.min.js'),
+    //                 loader: 'script-loader'
+    //             },
+    //             {
+    //                 test: require.resolve('scratch-blocks/dist/vertical.js'),
+    //                 loader: 'expose-loader?Blockly'
+    //             },
+    //             {
+    //                 test: require.resolve('scratch-audio'),
+    //                 loader: 'expose-loader?AudioEngine'
+    //             },
+    //             {
+    //                 test: require.resolve('scratch-storage'),
+    //                 loader: 'expose-loader?ScratchStorage'
+    //             },
+    //             {
+    //                 test: require.resolve('scratch-render'),
+    //                 loader: 'expose-loader?ScratchRender'
+    //             }
+    //         ])
+    //     },
+    //     performance: {
+    //         hints: false
+    //     },
+    //     plugins: base.plugins.concat([
+    //         new CopyWebpackPlugin([{
+    //             from: 'node_modules/scratch-blocks/media',
+    //             to: 'media'
+    //         }, {
+    //             from: 'node_modules/highlightjs/styles/zenburn.css'
+    //         }, {
+    //             from: 'node_modules/scratch-storage/dist/web'
+    //         }, {
+    //             from: 'node_modules/scratch-render/dist/web'
+    //         }, {
+    //             from: 'src/playground'
+    //         }])
+    //     ])
+    // })
 ];
