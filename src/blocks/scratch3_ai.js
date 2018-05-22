@@ -15,40 +15,32 @@ class Scratch3AiBlocks {
 		};
 	}
 
-	uploadFile() {
-		
+	playAudio(args, util) {
+		const text = Cast.toString(args.TEXT);
+		console.log(`playAudio: ${text}`);
 	}
 
 	speechRecognition(args, util) {
-		const AISPE = Cast.toString(args.AISPE);
-		console.log(AISPE);
-		console.log("语音识别");
-		//lzy('lzy','spe',[AISPE]);
-	}
-
-	picRecognition(args, util) {
-		const AIPIC = Cast.toString(args.AIPIC);
-		console.log(AIPIC);
-		//lzy('lzy','pic',[AIPIC]);
-	}
-
-	playAudio(args, util) {
-		const AIAUDIO = Cast.toString(args.AIAUDIO);
-		console.log(AIAUDIO);
-		console.log("播放声音");
-		//lzy('lzy','tts',[AIAUDIO]);
+		const speech = Cast.toString(args.SPEECH);
+		console.log(`speechRecognition: ${speech}`);
 	}
 
 	speechResult(args, util) {
-		console.log("语音识别结果");
+		console.log(`speechResult`);
 		//return speechResultStr;
+		// TODO must return string
+	}
+
+	picRecognition(args, util) {
+		const tag = Cast.toString(args.TAG);
+		console.log(`picRecognition: ${tag}`);
 	}
 
 	picResult(args, util) {
-		console.log("图像识别结果");
+		console.log(`picResult`);
 		//return picResultStr;
+		// TODO must return string
 	}
-
 }
 
 module.exports = Scratch3AiBlocks;
