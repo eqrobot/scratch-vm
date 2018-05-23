@@ -1,9 +1,13 @@
 const Cast = require('../util/cast');
 const axios = require('axios');
 
+const VIDEO_WIDTH = 400;
+const VIDEO_HEIGHT = 300;
+
 class Scratch3AiBlocks {
 	construct(runtime) {
 		this.runtime = runtime;
+		this.initDom();
 	}
 	
 	getPrimitives() {
@@ -50,13 +54,74 @@ class Scratch3AiBlocks {
 	picRecognition(args, util) {
 		const tag = Cast.toString(args.TAG);
 		console.log(`picRecognition: ${tag}`);
+		const self = this;
 		//pic
+		//http://server.kernbot.com/baiduai/imageclassify/{api}
+		navigator.mediaDevices.getUserMedia({
+		    audio: false,
+		    video: {
+		        width: VIDEO_WIDTH,
+		        height: VIDEO_HEIGHT,
+		    }
+		}).then(stream => {
+		    self.videoStream = stream;
+		    self.video.src = window.URL.createObjectURL(stream);
+		    self.video.play();
+
+		    setTimeout(() => {
+		    	self.canvas.getContext('2d').drawImage(self.video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
+		    	var data = self.canvas.toDataURL("image/jpeg");
+		    	console.log(data);
+		    	axios({
+		    		url: `http://server.kernbot.com/baiduai/imageclassify/${tag}`,
+		    		method: "post", 
+		    		data: {
+		    			content: data.slice(data.indexOf(",") + 1),
+		    		},
+		    		responseType: 'json',
+		    	}).then(response => {
+		    		if(response.data.status === 0) {
+		    			var res = response.data.data;
+		    			if(res.err_no === 0) {
+		    				self.picResultStr = res.result[0];
+		    			} else {
+		    				self.picResultStr = null;
+		    			}
+		    		} else {
+		    			self.picResultStr = null;
+		    		}
+		    	}).catch(err => {
+		    		self.picResultStr = null;
+		    		console.log(err);
+		    	});
+		    }, 2000);
+		});
 	}
 
 	picResult(args, util) {
-		console.log(`picResult`);
-		//return picResultStr;
-		// TODO must return string
+		console.log(`picResult: ${this.picResultStr}`);
+		return this.picResultStr || "";
+	}
+
+	initDom() {
+		this.dom = document.createElement("div");
+		this.dom.style.position = "absolute";
+		this.dom.style.width = `${VIDEO_WIDTH}px`;
+		this.dom.style.height = `${VIDEO_HEIGHT}px`;
+		this.dom.style.background = "#ccc";
+		this.dom.style.top = "0";
+		this.dom.style.left = "0";
+		this.dom.style.bottom = "0";
+		this.dom.style.right = "0";
+		this.dom.style.margin = "auto";
+		this.dom.style.zIndex = 99;
+
+		this.video = document.createElement("video");
+		this.video.width = VIDEO_WIDTH;
+		this.video.height = VIDEO_HEIGHT;
+		this.dom.appendChild(video);
+
+		this.canvas = document.createElement("canvas");
 	}
 
 	// data: base64
