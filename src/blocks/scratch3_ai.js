@@ -7,7 +7,6 @@ const VIDEO_HEIGHT = 300;
 class Scratch3AiBlocks {
 	construct(runtime) {
 		this.runtime = runtime;
-		this.initDom();
 	}
 	
 	getPrimitives() {
@@ -43,6 +42,17 @@ class Scratch3AiBlocks {
 		const speech = Cast.toString(args.SPEECH);
 		console.log(`speechRecognition: ${speech}`);
 		//spe
+
+		navigator.mediaDevices.getUserMedia({
+		    audio: {
+		    	
+		    },
+		    video: false,
+		}).then(stream => {
+
+		}, err => {
+			console.log(err);
+		});
 	}
 
 	speechResult(args, util) {
@@ -55,8 +65,7 @@ class Scratch3AiBlocks {
 		const tag = Cast.toString(args.TAG);
 		console.log(`picRecognition: ${tag}`);
 		const self = this;
-		//pic
-		//http://server.kernbot.com/baiduai/imageclassify/{api}
+
 		navigator.mediaDevices.getUserMedia({
 		    audio: false,
 		    video: {
@@ -64,16 +73,22 @@ class Scratch3AiBlocks {
 		        height: VIDEO_HEIGHT,
 		    }
 		}).then(stream => {
+			self.toggleDom(true);
+
 		    self.videoStream = stream;
 		    self.video.src = window.URL.createObjectURL(stream);
 		    self.video.play();
 
 		    setTimeout(() => {
 		    	self.canvas.getContext('2d').drawImage(self.video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
-		    	var data = self.canvas.toDataURL("image/jpeg");
-		    	console.log(data);
+		    	var data = self.canvas.toDataURL("image/png");
+
+		    	self.closeStream(self.videoStream);
+		    	self.video.src = null;
+		    	self.toggleDom(false);
+
 		    	axios({
-		    		url: `http://server.kernbot.com/baiduai/imageclassify/${tag}`,
+		    		url: `http://server.kenrobot.com/baiduai/imageclassify/${tag}`,
 		    		method: "post", 
 		    		data: {
 		    			content: data.slice(data.indexOf(",") + 1),
@@ -83,7 +98,8 @@ class Scratch3AiBlocks {
 		    		if(response.data.status === 0) {
 		    			var res = response.data.data;
 		    			if(res.err_no === 0) {
-		    				self.picResultStr = res.result[0];
+		    				self.picResultStr = res.result[0].name;
+		    				console.log(`picResult: ${self.picResultStr}`);
 		    			} else {
 		    				self.picResultStr = null;
 		    			}
@@ -94,16 +110,21 @@ class Scratch3AiBlocks {
 		    		self.picResultStr = null;
 		    		console.log(err);
 		    	});
-		    }, 2000);
+		    }, 5000);
+		}, err => {
+			console.log(err);
 		});
 	}
 
 	picResult(args, util) {
-		console.log(`picResult: ${this.picResultStr}`);
-		return this.picResultStr || "";
+		return this.picResultStr || "识别失败";
 	}
 
 	initDom() {
+		if(this.dom) {
+			return;
+		}
+
 		this.dom = document.createElement("div");
 		this.dom.style.position = "absolute";
 		this.dom.style.width = `${VIDEO_WIDTH}px`;
@@ -115,13 +136,20 @@ class Scratch3AiBlocks {
 		this.dom.style.right = "0";
 		this.dom.style.margin = "auto";
 		this.dom.style.zIndex = 99;
+		document.body.appendChild(this.dom);
 
 		this.video = document.createElement("video");
 		this.video.width = VIDEO_WIDTH;
 		this.video.height = VIDEO_HEIGHT;
-		this.dom.appendChild(video);
+		this.dom.appendChild(this.video);
 
 		this.canvas = document.createElement("canvas");
+	}
+
+	toggleDom(visiable) {
+		this.initDom();
+
+		this.dom.style.display = visiable ? "block" : "none";
 	}
 
 	// data: base64
@@ -156,6 +184,16 @@ class Scratch3AiBlocks {
 
 	    return buffer;
 	}
+
+	closeStream(stream) {
+        if (typeof stream.stop === 'function') {
+            stream.stop();
+            return;
+        }
+
+        let tracks = [].concat(stream.getAudioTracks() || []).concat(stream.getVideoTracks() || []);
+        tracks.forEach(track => track.stop());
+    }
 }
 
 module.exports = Scratch3AiBlocks;
