@@ -39,26 +39,54 @@ class Scratch3AiBlocks {
 	}
 
 	speechRecognition(args, util) {
-		const speech = Cast.toString(args.SPEECH);
-		console.log(`speechRecognition: ${speech}`);
+		const delay = Cast.toString(args.DELAY);
+		console.log(`speechRecognition: ${delay}`);
 		//spe
 
+		var self = this;
 		navigator.mediaDevices.getUserMedia({
-		    audio: {
-		    	
-		    },
+		    audio: true,
 		    video: false,
 		}).then(stream => {
-
+			var recorder = self.getRecorder(stream);
+			recorder.start();
+			setTimeout(() => {
+				recorder.stop();
+				var blob = recorder.getBlob();
+				self.blobToDataURL(blob, data => {
+					console.log(data);
+					axios({
+						url: 'http://server.kenrobot.com/baiduai/asrbase64',
+						method: "post", 
+						data: {
+							content: data,
+						},
+						responseType: 'json',
+					}).then(response => {
+						if(response.data.status === 0) {
+							var res = response.data.data;
+							if(res.err_no === 0) {
+								self.speechResultStr = res.result[0];
+								console.log(`speechResult: ${self.speechResultStr}`);
+							} else {
+								self.speechResultStr = null;
+							}
+						} else {
+							self.speechResultStr = null;
+						}
+					}).catch(err => {
+						console.log(err);
+					});
+				});
+			}, delay);
 		}, err => {
 			console.log(err);
 		});
 	}
 
 	speechResult(args, util) {
-		console.log(`speechResult`);
-		//return speechResultStr;
-		// TODO must return string
+		console.log(`speechResult: ${this.speechResultStr}`);
+		return this.speechResultStr  || "识别失败";
 	}
 
 	picRecognition(args, util) {
@@ -75,7 +103,6 @@ class Scratch3AiBlocks {
 		}).then(stream => {
 			self.toggleDom(true);
 
-		    self.videoStream = stream;
 		    self.video.src = window.URL.createObjectURL(stream);
 		    self.video.play();
 
@@ -83,7 +110,7 @@ class Scratch3AiBlocks {
 		    	self.canvas.getContext('2d').drawImage(self.video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
 		    	var data = self.canvas.toDataURL("image/png");
 
-		    	self.closeStream(self.videoStream);
+		    	self.closeStream(stream);
 		    	self.video.src = null;
 		    	self.toggleDom(false);
 
@@ -152,8 +179,6 @@ class Scratch3AiBlocks {
 		this.dom.style.display = visiable ? "block" : "none";
 	}
 
-	// data: base64
-	// eg. : //MoxAALoEH4AU8AANKcb4R8DOCrEzR5fAc4SMl7uA81g/BD/gmH+H//9QIO8u//qBCCDsuf9YP//8EFsfMsIh9gGGCahkQI//MoxAwQElKUAZuYAGZsYnY/7d7Q4BK85cZMD+cpJ/45hdPr/84eUin/+3///tp///2QMET1Mz////ekaWzn//pVq/zVWUuy//MoxAYOofaoAdsQAI8gG/Gt0HBM7Z7jnHBoGFhp/pd3//4wJ/l/0/yf///7/7f2f8xW02V3/UO/FX2QA7KI4Ial3389bqR8//MoxAYN+Hq4ANZmSMFFO4NsUVtY63mMCgBjDbysefkcTBcQ/+t////emsHQ2CDgCCB8uD4GHnyHx4smqwdQi8PF/pB/QM+A//MoxAkPYb7IypNElDTEAzZs6XRNQmgL4IQMA2qkdNC+bp////////9mau6Mc5zlMU4gKpDODYcbcUIGlAwP//6ay1vP8KG9//MoxAYOsSq0AMLEcKshRSBwgm18yYEkCEHJZTI5fplIijsfuj/+/kb87oogi01EwEBaINC+oKnfhBDFFtn///+m9CTKtTHA//MoxAYN0Uq0ADDMcKAAEHIyTPJl8lOzqy87FcuSOf//cU2pJzPKpUa0TQYk5E2Pry8kdddT2af9+v9v/Trq8opDbDs5UfSQ//MoxAkM2Q60AAiMcIz+jl3/x71LofX/etnRdmyOdYOnR0nhUPQwfUKtUr///QpK3kn+3uTf8vX5AseBAcgo85ufFeZjIT/1//MoxBALeQa8ACjScPdSu4XPIfwjUXrpGzttKrESATLUEyNBUiL1///8Liqqqx9RiDoHebItegY5GvHYITUdJgw9IitIUBg+//MoxB0L8OrliGmScUCthuOkZO2gmntElTSMIFFUL870CABItRJwwBJMQQMtFWGIjiIcePECaBsNlg2Ai4QGjQ8o8/E8qgJQ//MoxCgM2P7gADmScFGRTg3qqzSqfIi1NRdZbI27gMAB6DJ0qNAqJPfQLW+mEczuutiCYTgw6hjmexrY60iFQzwqgRAd2OVo//MoxC8NMPMuXjmGcv///1Lcaa5ZI006AKAB/GHa8AEEClAKAMBV+OlgId9h454ETI0dtPLPnbjiJGs9V1ybJiZ/////55CF//MoxDUNIPsOXjDMckU5KJUAEgA/K3lEkylBLAxvarecvm+i/P8zwCRv0l622NzmkRoaI3FRh7/////7gL/62KU7uZ7QBaAP//MoxDsM4MrmPjGMcvsJNwiaskxtjgqVl47AiGBpn/vibgMupx2+lB8QNG3//////rAgLhF+1dLD6kJ7QBaAPKGqCq4kM6s4//MoxEINAM7dnjDMcsBTI5KsFQRa8p4qS4AR4SUBWPFTISS1//////8UAoiJBVH0MGJVEIRFHoByJISKEQyHi6Bt25uNIToq//MoxEkM0KqVXhjMTJeKZSFQpGoTR4JZwvWMXppVTEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVMQU1FMy45OS41VVVVVVVVVVVV//MoxFAJUJlAwDJYTVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//MoxGUAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//MoxKAAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//MoxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
 	play(data) {
 		var self = this;
 
@@ -193,6 +218,159 @@ class Scratch3AiBlocks {
 
         let tracks = [].concat(stream.getAudioTracks() || []).concat(stream.getVideoTracks() || []);
         tracks.forEach(track => track.stop());
+    }
+
+    getRecorder(stream) {
+    	var self = this;
+    	var context = new AudioContext();
+    	var audioInput = context.createMediaStreamSource(stream);
+    	audioInput.connect(context.createGain());
+    	var recorder = context.createScriptProcessor(4096, 1, 1);
+
+    	var audioData = {
+    	    size: 0, //录音文件长度  
+    	    buffer: [], //录音缓存  
+    	    inputSampleRate: context.sampleRate, //输入采样率  
+    	    inputSampleBits: 16, //输入采样数位 8, 16  
+    	    outputSampleRate: 16000, //输出采样率  
+    	    oututSampleBits: 16, //输出采样数位 8, 16
+
+    	    input: function (data) {
+    	        this.buffer.push(new Float32Array(data));
+    	        this.size += data.length;
+    	    },
+
+    	    compress: function () { //合并压缩  
+    	        //合并  
+    	        var data = new Float32Array(this.size);
+    	        var offset = 0;
+    	        for (var i = 0; i < this.buffer.length; i++) {
+    	            data.set(this.buffer[i], offset);
+    	            offset += this.buffer[i].length;
+    	        }
+    	        //压缩  
+    	        var compression = parseInt(this.inputSampleRate / this.outputSampleRate);
+    	        var length = data.length / compression;
+    	        var result = new Float32Array(length);
+    	        var index = 0,
+    	            j = 0;
+    	        while (index < length) {
+    	            result[index] = data[j];
+    	            j += compression;
+    	            index++;
+    	        }
+    	        return result;
+    	    },
+
+    	    encodeWAV: function () {
+    	        var sampleRate = Math.min(this.inputSampleRate, this.outputSampleRate);
+    	        var sampleBits = Math.min(this.inputSampleBits, this.oututSampleBits);
+    	        var bytes = this.compress();
+    	        var dataLength = bytes.length * (sampleBits / 8);
+    	        var buffer = new ArrayBuffer(44 + dataLength);
+    	        var data = new DataView(buffer);
+
+    	        var channelCount = 1; //单声道  
+    	        var offset = 0;
+
+    	        var writeString = function (str) {
+    	            for (var i = 0; i < str.length; i++) {
+    	                data.setUint8(offset + i, str.charCodeAt(i));
+    	            }
+    	        };
+
+    	        // 资源交换文件标识符   
+    	        writeString('RIFF');
+    	        offset += 4;
+    	        // 下个地址开始到文件尾总字节数,即文件大小-8   
+    	        data.setUint32(offset, 36 + dataLength, true);
+    	        offset += 4;
+    	        // WAV文件标志  
+    	        writeString('WAVE');
+    	        offset += 4;
+    	        // 波形格式标志   
+    	        writeString('fmt ');
+    	        offset += 4;
+    	        // 过滤字节,一般为 0x10 = 16   
+    	        data.setUint32(offset, 16, true);
+    	        offset += 4;
+    	        // 格式类别 (PCM形式采样数据)   
+    	        data.setUint16(offset, 1, true);
+    	        offset += 2;
+    	        // 通道数   
+    	        data.setUint16(offset, channelCount, true);
+    	        offset += 2;
+    	        // 采样率,每秒样本数,表示每个通道的播放速度   
+    	        data.setUint32(offset, sampleRate, true);
+    	        offset += 4;
+    	        // 波形数据传输率 (每秒平均字节数) 单声道×每秒数据位数×每样本数据位/8   
+    	        data.setUint32(offset, channelCount * sampleRate * (sampleBits / 8), true);
+    	        offset += 4;
+    	        // 快数据调整数 采样一次占用字节数 单声道×每样本的数据位数/8   
+    	        data.setUint16(offset, channelCount * (sampleBits / 8), true);
+    	        offset += 2;
+    	        // 每样本数据位数   
+    	        data.setUint16(offset, sampleBits, true);
+    	        offset += 2;
+    	        // 数据标识符   
+    	        writeString('data');
+    	        offset += 4;
+    	        // 采样数据总数,即数据总大小-44   
+    	        data.setUint32(offset, dataLength, true);
+    	        offset += 4;
+    	        // 写入采样数据   
+    	        if (sampleBits === 8) {
+    	            for (var i = 0; i < bytes.length; i++, offset++) {
+    	                var s = Math.max(-1, Math.min(1, bytes[i]));
+    	                var val = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    	                val = parseInt(255 / (65535 / (val + 32768)));
+    	                data.setInt8(offset, val, true);
+    	            }
+    	        } else {
+    	            for (var i = 0; i < bytes.length; i++, offset += 2) {
+    	                var s = Math.max(-1, Math.min(1, bytes[i]));
+    	                data.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    	            }
+    	        }
+
+    	        return new Blob([data], {
+    	            type: 'audio/wav'
+    	        });
+    	    }
+    	};
+
+    	//音频采集  
+    	recorder.onaudioprocess = e => audioData.input(e.inputBuffer.getChannelData(0));
+
+    	//开始录音  
+    	var start = function () {
+    	    audioInput.connect(recorder);
+    	    recorder.connect(context.destination);
+    	};
+
+    	//停止  
+    	var stop = function () {
+    	    recorder.disconnect();
+    	    self.closeStream(stream);
+    	};
+
+    	//获取音频文件  
+    	var getBlob = function () {
+    	    this.stop();
+    	    return audioData.encodeWAV();
+    	};
+
+    	return {
+    		start: start,
+    		stop: stop,
+    		getBlob: getBlob,
+    	};
+    }
+
+    blobToDataURL(blob, callback) {
+        var reader = new FileReader();
+        reader.onload = e => callback(e.target.result);
+        reader.readAsDataURL(blob);
     }
 }
 
